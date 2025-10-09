@@ -12,3 +12,6 @@ _deps
 CMakeUserPresets.json
 build/
 a.out
+.zig-cache/
+zig-out/
+*.o
