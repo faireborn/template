@@ -283,6 +283,24 @@ class DoubleArrayImpl {
       std::size_t max_num_results, std::size_t length = 0,
       std::size_t node_pos = 0) const;
 
+  // The 1st commonLongestPrefixSearch() earches for the longest key which
+  // matches a prefix of the given string, and if it exists, its value and
+  // length are set to `result'. Otherwise, the value and the length of
+  //`result' are set to -1 and 0 respectively. Note that if `length' is 0,
+  // `key' is handled as a zero-terminated string. `node_pos' works as well as
+  // in exactMatchSearch().
+  template <class U>
+  void commonLongestPrefixSearch(const key_type *key, U &result,
+      std::size_t length = 0, std::size_t node_pos = 0) const {
+    result = commonLongestPrefixSearch<U>(key, length, node_pos);
+  }
+  // The 2nd commonLongestPrefixSearch() returns a result instead of updating
+  // the 2nd argument. So, the following commonLongestPrefixSearch() has only
+  // 3 arguments.
+  template <class U>
+  inline U commonLongestPrefixSearch(const key_type *key,
+      std::size_t length = 0, std::size_t node_pos = 0) const;
+
   // In Darts-clone, a dictionary is a deterministic finite-state automaton
   // (DFA) and traverse() tests transitions on the DFA. The initial state is
   // `node_pos' and traverse() chooses transitions labeled key[key_pos],
@@ -405,7 +423,7 @@ int DoubleArrayImpl<A, B, T, C>::open(const char *file_name,
 
 template <typename A, typename B, typename T, typename C>
 int DoubleArrayImpl<A, B, T, C>::save(const char *file_name,
-    const char *mode, std::size_t) const {
+    const char *mode, std::size_t offset) const {
   if (size() == 0) {
     return -1;
   }
@@ -421,6 +439,11 @@ int DoubleArrayImpl<A, B, T, C>::save(const char *file_name,
     return -1;
   }
 #endif
+
+  if (std::fseek(file, offset, SEEK_SET) != 0) {
+    std::fclose(file);
+    return -1;
+  }
 
   if (std::fwrite(array_, unit_size(), size(), file) != size()) {
     std::fclose(file);
@@ -510,6 +533,49 @@ inline std::size_t DoubleArrayImpl<A, B, T, C>::commonPrefixSearch(
   }
 
   return num_results;
+}
+
+template <typename A, typename B, typename T, typename C>
+template <typename U>
+inline U DoubleArrayImpl<A, B, T, C>::commonLongestPrefixSearch(
+    const key_type *key, std::size_t length,
+    std::size_t node_pos) const {
+  U result;
+  set_result(&result, static_cast<value_type>(-1), 0);
+
+  unit_type unit = array_[node_pos];
+  node_pos ^= unit.offset();
+  if (length != 0) {
+    for (std::size_t i = 0; i < length; ++i) {
+      node_pos ^= static_cast<uchar_type>(key[i]);
+      unit = array_[node_pos];
+      if (unit.label() != static_cast<uchar_type>(key[i])) {
+        return result;
+      }
+
+      node_pos ^= unit.offset();
+      if (unit.has_leaf()) {
+        set_result(&result, static_cast<value_type>(
+            array_[node_pos].value()), i + 1);
+      }
+    }
+  } else {
+    for ( ; key[length] != '\0'; ++length) {
+      node_pos ^= static_cast<uchar_type>(key[length]);
+      unit = array_[node_pos];
+      if (unit.label() != static_cast<uchar_type>(key[length])) {
+        return result;
+      }
+
+      node_pos ^= unit.offset();
+      if (unit.has_leaf()) {
+        set_result(&result, static_cast<value_type>(
+            array_[node_pos].value()), length + 1);
+      }
+    }
+  }
+
+  return result;
 }
 
 template <typename A, typename B, typename T, typename C>

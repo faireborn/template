@@ -6,9 +6,11 @@
 #include "darts.h"
 
 int main(int argc, char **argv) {
+  if (argc != 2) exit(1);
+
   std::string line;
   std::vector<std::string> dic;
-  std::ifstream ifs("dic.txt");
+  std::ifstream ifs(argv[1]);
   while (std::getline(ifs, line)) {
     dic.emplace_back(line);
   }
@@ -23,7 +25,7 @@ int main(int argc, char **argv) {
   }
 
   Darts::DoubleArray da;
-  da.build(key.size(), const_cast<char **>(key.data()), nullptr, value.data());
+  da.build(key.size(), key.data(), nullptr, value.data());
   da.save("dictionary.data");
 
   return 0;

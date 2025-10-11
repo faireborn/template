@@ -8,9 +8,10 @@ size_t OneCharLen(const char *c) {
   return "\1\1\1\1\1\1\1\1\1\1\1\1\2\2\3\4"[(*c & 0xFF) >> 4];
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+  if (argc != 2) exit(1);
   Darts::DoubleArray da;
-  da.open("dictionary.data");
+  da.open(argv[1]);
 
   constexpr int result_size = 512;
   Darts::DoubleArray::result_pair_type results[result_size];
