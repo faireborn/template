@@ -43,13 +43,20 @@ pub fn build(b: *std.Build) void {
     common_prefix_search_exe.linkLibCpp();
     b.installArtifact(common_prefix_search_exe);
 
-    const run_cmd = b.addRunArtifact(build_exe);
-    run_cmd.step.dependOn(b.getInstallStep());
+    const run_build = b.addRunArtifact(build_exe);
+    run_build.step.dependOn(b.getInstallStep());
+
+    const run_common_prefix_search = b.addRunArtifact(common_prefix_search_exe);
+    run_build.step.dependOn(b.getInstallStep());
 
     if (b.args) |args| {
-        run_cmd.addArgs(args);
+        run_build.addArgs(args);
+        run_common_prefix_search.addArgs(args);
     }
 
-    const run_step = b.step("run", "Run the app");
-    run_step.dependOn(&run_cmd.step);
+    const build_step = b.step("build", "Run the app");
+    build_step.dependOn(&run_build.step);
+
+    const common_prefix_search_step = b.step("common_prefix_search", "Common prefix search");
+    common_prefix_search_step.dependOn(&run_common_prefix_search.step);
 }
