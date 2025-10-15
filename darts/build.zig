@@ -16,6 +16,12 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
 
+    const mmap_mod = b.addModule("mmap", .{
+        .target = target,
+        .optimize = mode,
+        .link_libc = true,
+    });
+
     build_mod.addCSourceFile(.{
         .file = b.path("src/build.cc"),
         .flags = &[_][]const u8{"-std=c++17"},
@@ -23,6 +29,11 @@ pub fn build(b: *std.Build) void {
 
     common_prefix_search_mod.addCSourceFile(.{
         .file = b.path("src/common_prefix_search.cc"),
+        .flags = &[_][]const u8{"-std=c++17"},
+    });
+
+    mmap_mod.addCSourceFile(.{
+        .file = b.path("src/mmap.cc"),
         .flags = &[_][]const u8{"-std=c++17"},
     });
 
@@ -40,23 +51,43 @@ pub fn build(b: *std.Build) void {
         .name = "common_prefix_search",
         .root_module = common_prefix_search_mod,
     });
+    common_prefix_search_exe.installHeadersDirectory(b.path("third_party"), "", .{
+        .include_extensions = &.{"h"},
+    });
     common_prefix_search_exe.linkLibCpp();
     b.installArtifact(common_prefix_search_exe);
+
+    const mmap_exe = b.addExecutable(.{
+        .name = "mmap",
+        .root_module = mmap_mod,
+    });
+    mmap_exe.installHeadersDirectory(b.path("third_party"), "", .{
+        .include_extensions = &.{"h"},
+    });
+    mmap_exe.linkLibCpp();
+    b.installArtifact(mmap_exe);
 
     const run_build = b.addRunArtifact(build_exe);
     run_build.step.dependOn(b.getInstallStep());
 
     const run_common_prefix_search = b.addRunArtifact(common_prefix_search_exe);
-    run_build.step.dependOn(b.getInstallStep());
+    run_common_prefix_search.step.dependOn(b.getInstallStep());
+
+    const run_mmap = b.addRunArtifact(mmap_exe);
+    run_mmap.step.dependOn(b.getInstallStep());
 
     if (b.args) |args| {
         run_build.addArgs(args);
         run_common_prefix_search.addArgs(args);
+        run_mmap.addArgs(args);
     }
 
-    const build_step = b.step("build", "Run the app");
+    const build_step = b.step("build", "Build double array");
     build_step.dependOn(&run_build.step);
 
     const common_prefix_search_step = b.step("common_prefix_search", "Common prefix search");
     common_prefix_search_step.dependOn(&run_common_prefix_search.step);
+
+    const mmap_step = b.step("mmap", "Load Double Array with mmap");
+    mmap_step.dependOn(&run_mmap.step);
 }
